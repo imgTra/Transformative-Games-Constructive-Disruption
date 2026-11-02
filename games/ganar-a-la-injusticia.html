@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Voto Power v6</title>
+<meta property="og:title" content="Voto Power">
+<meta property="og:description" content="Esquiva, reúne aliados y vota. ¡Entre todos venceremos al fascismo!">
+<meta property="og:type" content="website">
+<meta name="description" content="Juego de plataformas para fomentar la participación democrática.">
+<style>
+  html,body{margin:0;height:100%;background:#120f1f;overflow:hidden;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;color:#fff}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  canvas#game{width:min(100vw,177.78vh);height:min(56.25vw,100vh);background:#000;display:block;image-rendering:auto}
+  .ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(18,15,31,.88);z-index:10;padding:16px;box-sizing:border-box;text-align:center}
+  .ov.hide{display:none}
+  .card{max-width:520px;width:100%}
+  h1{font-family:Impact,"Arial Black",sans-serif;font-size:clamp(40px,9vw,72px);margin:0;letter-spacing:2px;color:#ffd23f;text-shadow:3px 3px 0 #e63946}
+  p{margin:8px 0;line-height:1.35}
+  .btn{display:inline-block;border:0;border-radius:12px;background:#e63946;color:#fff;font-weight:800;font-size:18px;padding:13px 22px;margin:6px;cursor:pointer;text-decoration:none;font-family:inherit}
+  .btn.alt{background:#3a86ff}.btn.ok{background:#2a9d8f}.btn.dark{background:#444}
+  .help{background:rgba(255,255,255,.08);border-radius:12px;padding:10px 14px;font-size:14px;text-align:left}
+  #memeOv{align-items:flex-start;overflow-y:auto;touch-action:pan-y}
+  #memeOv .card{max-width:480px;margin:auto}
+  #memeCv{width:100%;max-width:440px;border-radius:10px;box-shadow:0 6px 30px #000a}
+  label.sl{display:block;background:rgba(255,255,255,.1);border-radius:10px;padding:10px;margin:6px 0;text-align:left;cursor:pointer;font-weight:700}
+  input[type=text]{width:100%;box-sizing:border-box;padding:11px;border-radius:10px;border:0;font-size:16px;margin:6px 0}
+  /* controles táctiles */
+  #touch{position:fixed;left:0;right:0;bottom:0;height:0;z-index:5;display:none;pointer-events:none}
+  #touch.on{display:block}
+  .tb{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,.22);
+    border:2px solid rgba(255,255,255,.55);color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:none}
+  .tb:active,.tb.d{background:rgba(255,210,63,.55)}
+  #bL{left:14px}#bR{left:92px}#bJ{right:14px;width:78px;height:78px}#bT{right:104px;font-size:24px}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="800" height="450"></canvas></div>
+
+<div id="touch">
+  <div class="tb" id="bL" data-k="left">◀</div>
+  <div class="tb" id="bR" data-k="right">▶</div>
+  <div class="tb" id="bT" data-k="throw">🗳️</div>
+  <div class="tb" id="bJ" data-k="jump">⤒</div>
+</div>
+
+<div class="ov" id="titleOv">
+  <div class="card">
+    <h1>VOTO POWER</h1>
+    <p><b>Esquiva, reúne aliados y vota.</b><br>Entre todos se vence al Monstruo de la Avaricia.</p>
+    <div class="help">
+      <b>Controles</b><br>
+      ← → o A D: moverse · ↑ / W / Espacio: saltar<br>
+      X / J: lanzar voto (en el combate final)<br>
+      P / Esc o el botón ⏸: pausa<br>
+      <b>Móvil:</b> botones en pantalla (mejor en horizontal)<br><br>
+      💡 Salta encima de los cabezones para vencerlos. Cuando levanten el arma (❗) o lancen un cartel, ¡esquiva! Al pisarlos sacas el megáfono 📢 y la gente sale de las casas. Recoge monedas y <b>aliados</b>: ellos te ayudarán contra el jefe.
+    </div>
+    <button class="btn" id="playBtn">▶ JUGAR</button>
+    <div><button class="btn alt" id="sendGameBtn">📲 Enviar el juego</button></div>
+    <input type="text" id="gameUrl" placeholder="Enlace del juego (pégalo aquí para compartirlo)" maxlength="200">
+    <p style="font-size:12px;opacity:.7;margin-top:2px">Aloja este archivo (Netlify, GitHub Pages…) y pega aquí su enlace: se enviará junto al meme.</p>
+  </div>
+</div>
+
+<div class="ov hide" id="memeOv">
+  <div class="card">
+    <canvas id="memeCv" width="1080" height="1080"></canvas>
+    <p style="margin-top:12px"><b>Elige tu lema</b></p>
+    <label class="sl"><input type="radio" name="slo" value="0" checked> ¡Ganaremos al fascismo!</label>
+    <label class="sl"><input type="radio" name="slo" value="1"> Mi voto no es para los multimillonarios, es para las necesidades</label>
+    <input type="text" id="handle" placeholder="Tu perfil, ej. @tuusuario" maxlength="30">
+    <p style="margin:10px 0 4px"><b>Formato</b></p>
+    <label class="sl"><input type="radio" name="fmt" value="img" checked> 🖼️ Foto
+    <label class="sl"><input type="radio" name="fmt" value="vid"> 🎬 Vídeo (5 s)
+    <div>
+      <button class="btn" id="igBtn" style="background:linear-gradient(45deg,#f9a03f,#e1306c,#833ab4)">📸 Instagram</button>
+      <button class="btn" id="ttBtn" style="background:#111;box-shadow:2px 2px 0 #25f4ee,-2px -2px 0 #fe2c55">🎵 TikTok</button>
+      <button class="btn" id="waShareBtn" style="background:#25d366">💬 WhatsApp</button>
+    </div>
+    <div>
+      <button class="btn ok" id="shareBtn">📤 Otras apps</button>
+      <button class="btn alt" id="dlBtn">⬇ Descargar</button>
+    </div>
+    <div>
+      <a class="btn dark" id="waBtn" target="_blank" rel="noopener">WhatsApp (solo texto)</a>
+      <button class="btn dark" id="copyBtn">🔗 Copiar enlace</button>
+      <a class="btn dark" id="xBtn" target="_blank" rel="noopener">X</a>
+    </div>
+    <p id="shareMsg" style="font-size:13px;opacity:.85;min-height:36px">Se abrirá el menú de compartir de tu móvil: elige Instagram o TikTok. Tú decides si publicas.</p>
+    <button class="btn" id="againBtn">↺ Jugar otra vez</button>
+  </div>
+</div>
+
+<div class="ov hide" id="pauseOv">
+  <div class="card">
+    <h1 style="font-size:clamp(34px,8vw,56px)">PAUSA</h1>
+    <p>Respira. El juego sigue cuando tú quieras.</p>
+    <div><button class="btn ok" id="resumeBtn">▶ Continuar</button></div>
+    <div>
+      <button class="btn dark" id="soundBtn">🔊 Sonido: sí</button>
+      <button class="btn" id="restartBtn">↺ Reiniciar partida</button>
+    </div>
+    <div class="help" style="margin-top:10px">← → / A D: moverse · ↑ W Espacio: saltar · X J: lanzar voto · P o Esc: pausa</div>
+  </div>
+</div>
+
+<script>
+(()=>{
+'use strict';
+const cv=document.getElementById('game'),ctx=cv.getContext('2d');
+const W=800,H=450,GY=380;
+const DPR=Math.min(window.devicePixelRatio||1,2);
+cv.width=W*DPR;cv.height=H*DPR;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const TAU=Math.PI*2;
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+let paused=false,muted=false;
+const keys={left:0,right:0,jump:0,throw:0};
+let jumpBuf=0;
+const kmap={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'jump',KeyW:'jump',Space:'jump',KeyX:'throw',KeyJ:'throw',KeyK:'throw'};
+addEventListener('keydown',e=>{if(e.code==='KeyP'||e.code==='Escape'){e.preventDefault();if(!e.repeat)setPause(!paused);return;}const k=kmap[e.code];if(!k||paused)return;e.preventDefault();
+  if(k==='jump'&&!keys.jump)jumpBuf=.12;keys[k]=1;});
+addEventListener('keyup',e=>{const k=kmap[e.code];if(!k)return;e.preventDefault();keys[k]=0;});
+document.querySelectorAll('.tb').forEach(b=>{
+  const k=b.dataset.k;
+  const down=e=>{e.preventDefault();if(k==='jump'&&!keys.jump)jumpBuf=.12;keys[k]=1;b.classList.add('d');};  const up=e=>{e.preventDefault();keys[k]=0;b.classList.remove('d');};  b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);  b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up);
+});
+if('ontouchstart' in window||navigator.maxTouchPoints>0)document.getElementById('touch').classList.add('on');
+addEventListener('contextmenu',e=>e.preventDefault());
+
+const LEVELS=[
+ {name:'Los Evasores',sub:'Barrio asaltado',sky:['#7fa9cf','#d7e6f1'],far:'#8da2b8',ground:'#4b4e5c',enemy:'evasor',suit:'#2b2d42',theme:'street',signs:['ROBOS','DESAHUCIOS','PARO']},
+ {name:'Vivienda',sub:'Pisos turísticos',sky:['#f0a96e','#fde5c4'],far:'#c79b86',ground:'#5b5260',enemy:'especulador',suit:'#1f6b4f',theme:'housing',signs:['ALQUILERES ↑','SE VENDE','TURISTIFICACIÓN']},
+ {name:'Sanidad pública',sub:'Hospital',sky:['#a9d6c4','#eaf6f0'],far:'#9bb8ad',ground:'#566868',enemy:'martillero',suit:'#5b2a86',theme:'hospital',signs:['LISTA DE ESPERA','CAMAS CERRADAS','URGENCIAS COLAPSADAS']},
+ {name:'Educación pública',sub:'Colegio',sky:['#efcf92','#fbeed2'],far:'#cdb48a',ground:'#6b5a4a',enemy:'demoledor',suit:'#7a1f1f',theme:'school',signs:['MAREA VERDE','EDUCACIÓN PÚBLICA PARA TODOS','¡QUEREMOS TENER FUTURO!!']}
+];
+const LEN=3400;
+const ALLY_COL=[['#ffffff','#2a9d8f'],['#3a86ff','#f4a261'],['#8338ec','#e9c46a']];
+const SKINS=['#f2c6a0','#c68642','#8d5524','#e0ac69'];
+
+function build(i){const r=rng(i*977+13),plats=[],enemies=[],coins=[],allies=[];for(let x=520;x<LEN-500;x+=430+r()*190){const w=110+r()*70,y=GY-95-r()*85;plats.push({x,y,w,h:14});for(let k=0;k<3;k++)coins.push({x:x+22+k*(w-44)/2,y:y-26,got:0});}for(let x=300;x<LEN-350;x+=300+r()*170){for(let k=0;k<4;k++)coins.push({x:x+k*30,y:GY-26-Math.sin(k/3*Math.PI)*38,got:0});}for(let x=680;x<LEN-420;x+=340+r()*130){enemies.push({type:LEVELS[i].enemy,x,y:GY,home:x,vx:0,vy:0,dir:-1,t:r()*5,jt:1+r(),drop:0,on:true,dead:0,dt:0,atk:0,at:0,at0:.5,cd:.5+r(),thr:0,loot:0});}if(i===1&&enemies.length>2)enemies.splice(Math.floor(enemies.length/2),1);[950,1950,2750].forEach((x,k)=>allies.push({x:x+r()*150,kind:(k+i)%3,skin:Math.floor(r()*4),got:0}));return{plats,enemies,coins,allies};}
+
+const P={x:80,y:GY-54,vx:0,vy:0,w:20,h:54,on:true,f:1,inv:0,t:0};
+let mode='idle',lvl=0,LV=build(0),cam=0,score=0,allies=0,hearts=3,snap={score:0,allies:0};
+let hist=[],defeated=0,banner={a:'',b:'',t:0},pops=[],coyote=0,T=0,shake=0;
+let boss=null,shots=[],bags=[],items=[],coinFx=[],throwCd=0,allyCd=[],conf=[],endT=0,endPh=0,endPt=0;
+let finalVoices=0,fx=[],projs=[],crowd=[];
+
+function loadLevel(i){lvl=i;LV=build(i);P.x=80;P.y=GY-P.h;P.vx=P.vy=0;P.on=true;P.f=1;P.inv=0;cam=0;hearts=3;snap={score,allies};hist=[];projs=[];crowd=[];P.mega=0;defeated=0;pops=[];mode='play';banner={a:LEVELS[i].name,b:LEVELS[i].sub,t:2.4};}
+function newGame(){score=0;allies=0;boss=null;shots=[];bags=[];items=[];coinFx=[];conf=[];loadLevel(0);}
+function pop(x,y,txt,col){pops.push({x,y,txt,t:1,col:col||'#fff'});}
+
+function movePlayer(dt,minX,maxX,pl){const ax=keys.right-keys.left;P.vx+=(ax*215-P.vx)*Math.min(1,dt*12);if(ax)P.f=ax>0?1:-1;jumpBuf-=dt;coyote-=dt;if(P.on)coyote=.1;if(jumpBuf>0&&coyote>0){P.vy=-570;P.on=false;coyote=0;jumpBuf=0;beep(540,.09);}P.vy+=(1500+((!keys.jump&&P.vy<-200)?2400:0))*dt;const pb=P.y+P.h;P.x=clamp(P.x+P.vx*dt,minX,maxX);P.y+=P.vy*dt;P.on=false;if(P.y+P.h>=GY){P.y=GY-P.h;P.vy=0;P.on=true;}for(const q of pl){if(P.vy>=0&&pb<=q.y+3&&P.y+P.h>=q.y&&P.x+10>q.x&&P.x-10<q.x+q.w){P.y=q.y-P.h;P.vy=0;P.on=true;}}}
+function hurt(fromX){if(P.inv>0)return;hearts--;P.inv=1.6;P.vy=-300;P.on=false;P.vx=(P.x>=fromX?1:-1)*260;shake=.25;beep(120,.25,'sawtooth',.06);if(hearts<=0){if(mode==='play'){mode='dead';banner={a:'¡Otra vez!',b:'Los vecinos te animan',t:1.6};}else{hearts=3;P.inv=2.2;pop(P.x,P.y-20,'¡Tus aliados te levantan!','#ffd23f');}}}
+
+function beep(f,d=.08,type='square',v=.04){if(muted)return;try{const ac=new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(ac.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.stop(ac.currentTime+d);}catch(e){}}
+
+let last=0;
+function frame(ts){const dt=Math.min(.033,(ts-last)/1000||0);last=ts;if(!paused){T+=dt;update(dt);draw();}requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+
+function update(dt){P.t+=dt;if(P.inv>0)P.inv-=dt;if(banner.t>0)banner.t-=dt;shake=Math.max(0,shake-dt);if(P.mega>0)P.mega-=dt;}
+function draw(){ctx.setTransform(DPR,0,0,DPR,0,0);if(shake>0)ctx.translate((Math.random()-.5)*8,(Math.random()-.5)*8);ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff';ctx.font='20px Arial';ctx.fillText('Juego Cargando...',W/2-80,H/2);}
+
+function setPause(v){if(v&&(paused))return;paused=v;if(v){document.getElementById('pauseOv').classList.remove('hide');}else{document.getElementById('pauseOv').classList.add('hide');}}
+
+document.getElementById('playBtn').onclick=()=>{document.getElementById('titleOv').classList.add('hide');beep(440,.05);newGame();};
+document.getElementById('resumeBtn').onclick=()=>{setPause(false);};
+document.getElementById('restartBtn').onclick=()=>{setPause(false);newGame();};
+document.getElementById('soundBtn').onclick=()=>{muted=!muted;document.getElementById('soundBtn').textContent=muted?'🔇 Sonido: no':'🔊 Sonido: sí';};
+
+if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(document.hidden)setPause(true);});
+if(typeof window!=='undefined'&&window.addEventListener)window.addEventListener('blur',()=>{setPause(true);});
+
+})();
+</script>
+</body>
+</html>

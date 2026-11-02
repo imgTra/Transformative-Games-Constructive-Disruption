@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nadie se queda atrás</title>
+<style>
+:root{--bg:#0a0a12;--fg:#e8e2d4;--panel:#1a1a2e;--line:#7a7488;--ac:#2a9d8f;--ac2:#e63946}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:"Courier New",Courier,monospace;font-weight:700;-webkit-tap-highlight-color:transparent}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;border:3px solid var(--line);width:100%;height:auto;max-width:100%}
+.px{background:var(--panel);border:3px solid var(--line);box-shadow:0 0 0 3px var(--bg),0 0 0 6px var(--line);padding:10px;margin:8px 6px}
+.btn{font:inherit;background:var(--ac);color:#fff;border:3px solid #000;padding:8px 12px;cursor:pointer;box-shadow:3px 3px 0 #000;text-transform:uppercase;letter-spacing:.5px;margin:3px}
+.btn:active{transform:translate(3px,3px);box-shadow:none}
+h1{margin:.3em 0;text-transform:uppercase;letter-spacing:1px;font-size:clamp(20px,5vw,32px)}
+p{margin:.5em 0;line-height:1.4}
+.wrap{max-width:640px;margin:0 auto;padding:10px}
+.small{font-size:12px;opacity:.85}
+.center{text-align:center}
+.good{color:#6fe08a}.bad{color:#ff7a7a}
+@media(max-width:600px){.btn{padding:10px 9px;font-size:13px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Nadie se queda atrás</h1>
+  <canvas id="game" width="320" height="240"></canvas>
+  <div class="px" id="info"></div>
+  <div class="px center">
+    <p class="small">WASD o Flechas: Mover | Espacio: Saltar | Controles especiales mostrados en pantalla</p>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const TS = 16; // Tile size
+const PI = Math.PI;
+
+const CH = [
+  {name:'Mateo', icon:'🟦', ability:'Levanta', color:'#3a86ff', special:'Puede cargar a otros'},
+  {name:'Nora', icon:'🟥', ability:'Salta', color:'#e63946', special:'Salta más alto'},
+  {name:'Ada', icon:'🟩', ability:'Planea', color:'#2a9d8f', special:'Desciende lentamente'},
+  {name:'Fidel', icon:'🟨', ability:'Necesita', color:'#ffd60a', special:'Necesita ayuda para saltar'}
+];
+
+const LV = [
+  {
+    name: 'Barrio',
+    w: 20, h: 15,
+    tiles: [
+      '####################',
+      '#.................#',
+      '#...#.........#...#',
+      '#...#.........#...#',
+      '#.#.........#......#',
+      '#.#.........#......#',
+      '#..................#',
+      '#.......##.........#',
+      '#..................#',
+      '#.##........##.....#',
+      '#..................#',
+      '#..................#',
+      '#.....####....###..#',
+      '#..................#',
+      '####################'
+    ],
+    spawn: [[2,2], [4,2], [6,2], [8,2]],
+    goal: {x:18, y:2, w:1, h:2}
+  },
+  {
+    name: 'Plaza',
+    w: 20, h: 15,
+    tiles: [
+      '####################',
+      '#.................#',
+      '#......P.........#',
+      '#......P.........#',
+      '#......PP........#',
+      '#..................#',
+      '#..................#',
+      '#.#####......#####.#',
+      '#..................#',
+      '#..................#',
+      '#..................#',
+      '#....#.....#.......#',
+      '#..................#',
+      '#..................#',
+      '####################'
+    ],
+    spawn: [[2,2], [4,2], [3,2], [5,2]],
+    goal: {x:18, y:12, w:1, h:2}
+  },
+  {
+    name: 'Urna',
+    w: 20, h: 15,
+    tiles: [
+      '####################',
+      '#.................#',
+      '#..................#',
+      '#..................#',
+      '#..................#',
+      '#..................#',
+      '#..................#',
+      '#....########.....#',
+      '#..................#',
+      '#..................#',
+      '#..................#',
+      '#..................#',
+      '#.....####....###..#',
+      '#..................#',
+      '####################'
+    ],
+    spawn: [[2,2], [4,2], [3,2], [5,2]],
+    goal: {x:18, y:2, w:1, h:2}
+  }
+];
+
+let G = {
+  level: 0,
+  chars: [],
+  held: null,
+  keys: {},
+  time: 0,
+  win: false,
+  msg: 'Lleva a todos al recuadro verde'
+};
+
+function loadLevel() {
+  const lv = LV[G.level];
+  G.chars = [];
+  G.held = null;
+  G.time = 0;
+  G.win = false;
+  lv.spawn.forEach((sp, i) => {
+    G.chars.push({
+      name: CH[i].name,
+      color: CH[i].color,
+      x: sp[0]*TS + 4,
+      y: sp[1]*TS,
+      vx: 0, vy: 0,
+      held: false
+    });
+  });
+}
+
+function getTile(x, y) {
+  const lv = LV[G.level];
+  const tx = Math.floor(x/TS), ty = Math.floor(y/TS);
+  if (ty<0 || ty>=lv.h || tx<0 || tx>=lv.w) return '#';
+  return lv.tiles[ty][tx];
+}
+
+function isSolid(x, y) {
+  const t = getTile(x, y);
+  return t === '#' || t === 'P';
+}
+
+function update() {
+  const lv = LV[G.level];
+  G.time++;
+  
+  // Entrada
+  const speed = 1.5;
+  G.chars.forEach((ch, i) => {
+    if (ch.held || G.held === i) return;
+    
+    let dx = 0;
+    if (G.keys['ArrowLeft'] || G.keys['a']) dx = -speed;
+    if (G.keys['ArrowRight'] || G.keys['d']) dx = speed;
+    
+    ch.vx = dx;
+    ch.vy += 0.3; // Gravedad
+    ch.vy = Math.min(ch.vy, 4);
+    
+    // Colisión vertical
+    if (ch.vy > 0) {
+      if (isSolid(ch.x+1, ch.y+8) || isSolid(ch.x+7, ch.y+8)) {
+        ch.vy = 0;
+        ch.y = Math.floor((ch.y+8)/TS)*TS - 8;
+        if (G.keys[' ']) {
+          ch.vy = -5; // Salto
+        }
+      }
+    }
+    
+    // Colisión horizontal
+    if (ch.vx > 0 && (isSolid(ch.x+8, ch.y) || isSolid(ch.x+8, ch.y+7))) ch.vx = 0;
+    if (ch.vx < 0 && (isSolid(ch.x-1, ch.y) || isSolid(ch.x-1, ch.y+7))) ch.vx = 0;
+    
+    ch.x += ch.vx;
+    ch.y += ch.vy;
+    
+    // Bordes
+    if (ch.x < 0) ch.x = 0;
+    if (ch.x + 8 > W) ch.x = W - 8;
+    if (ch.y > H) {
+      ch.x = lv.spawn[i][0]*TS + 4;
+      ch.y = lv.spawn[i][1]*TS;
+      ch.vx = ch.vy = 0;
+    }
+  });
+  
+  // Cargar/soltar
+  if (G.held !== null) {
+    const holder = G.chars[0];
+    const held_ch = G.chars[G.held];
+    held_ch.x = holder.x - 4;
+    held_ch.y = holder.y - 8;
+    held_ch.vx = 0;
+    held_ch.vy = 0;
+    
+    if (!G.keys[' ']) {
+      G.held = null;
+    }
+  } else {
+    // Detectar si puede cargar
+    if (G.keys[' ']) {
+      G.chars.forEach((ch, i) => {
+        if (i === 0) return; // No cargarse a sí mismo
+        const dist = Math.hypot(ch.x - G.chars[0].x, ch.y - G.chars[0].y);
+        if (dist < 12) {
+          G.held = i;
+        }
+      });
+    }
+  }
+  
+  // Verificar meta
+  let allIn = true;
+  G.chars.forEach(ch => {
+    const inGoal = ch.x > lv.goal.x*TS-4 && ch.x < (lv.goal.x+1)*TS && 
+                   ch.y > lv.goal.y*TS && ch.y < (lv.goal.y+2)*TS;
+    if (!inGoal) allIn = false;
+  });
+  
+  if (allIn) {
+    G.win = true;
+    if (G.level < LV.length-1) {
+      setTimeout(() => {
+        G.level++;
+        loadLevel();
+      }, 1000);
+    }
+  }
+}
+
+function draw() {
+  ctx.fillStyle = 'var(--bg)';
+  ctx.fillRect(0, 0, W, H);
+  
+  const lv = LV[G.level];
+  
+  // Tiles
+  for (let ty = 0; ty < lv.h; ty++) {
+    for (let tx = 0; tx < lv.w; tx++) {
+      const t = lv.tiles[ty][tx];
+      const x = tx * TS, y = ty * TS;
+      if (t === '#') {
+        ctx.fillStyle = '#444';
+        ctx.fillRect(x, y, TS, TS);
+      } else if (t === 'P') {
+        ctx.fillStyle = '#888';
+        ctx.fillRect(x, y, TS, TS);
+      }
+    }
+  }
+  
+  // Meta
+  ctx.fillStyle = '#2a9d8f';
+  ctx.fillRect(lv.goal.x*TS, lv.goal.y*TS, TS, TS*2);
+  
+  // Personajes
+  G.chars.forEach((ch, i) => {
+    ctx.fillStyle = ch.color;
+    ctx.fillRect(ch.x, ch.y, 8, 8);
+    ctx.fillStyle = '#fff';
+    ctx.font = '6px Arial';
+    ctx.fillText(i+1, ch.x+2, ch.y+7);
+  });
+  
+  // HUD
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText(`Nivel ${G.level+1}/${LV.length}`, 5, 15);
+  
+  if (G.win && G.level === LV.length-1) {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#2a9d8f';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('¡GANASTE!', W/2, H/2);
+    ctx.fillText('Todos llegaron juntos a la urna', W/2, H/2+20);
+  }
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener('keydown', (e) => {
+  G.keys[e.key] = true;
+});
+
+document.addEventListener('keyup', (e) => {
+  G.keys[e.key] = false;
+});
+
+loadLevel();
+gameLoop();
+</script>
+</body>
+</html>

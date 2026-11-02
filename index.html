@@ -3,6 +3,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content="Transformative Games: Constructive Disruption">
+    <meta property="og:description" content="Juegos de transformación social para cambiar el mundo. Voto Power, El Desahucio, Nadie se queda atrás.">
+    <meta property="og:image" content="https://img.shields.io/badge/Social%20Impact-Games-brightgreen?style=for-the-badge">
+    <meta property="og:url" content="https://imgTra.github.io/Transformative-Games-Constructive-Disruption/">
     <title>Transformative Games: Constructive Disruption</title>
     <style>
         * {
@@ -243,6 +247,23 @@
             font-weight: bold;
         }
         
+        .github-link {
+            display: inline-block;
+            background: #333;
+            color: #ffd23f;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .github-link:hover {
+            background: #555;
+            transform: scale(1.05);
+        }
+        
         @media (max-width: 768px) {
             .games-grid {
                 grid-template-columns: 1fr;
@@ -265,6 +286,9 @@
             <h1>🎮 Transformative Games</h1>
             <p class="subtitle">Constructive Disruption</p>
             <p class="tagline">Juegos de transformación social para cambiar el mundo</p>
+            <a href="https://github.com/imgTra/Transformative-Games-Constructive-Disruption" class="github-link" target="_blank">
+                📖 Ver en GitHub
+            </a>
         </header>
         
         <div class="info-section">
@@ -293,7 +317,7 @@
                 </div>
                 <div class="btn-group">
                     <button class="btn" onclick="window.location.href='games/ganar-a-la-injusticia.html'">▶ JUGAR</button>
-                    <button class="btn alt" onclick="shareGame('Voto Power', 'Esquiva, reúne aliados y vota. ¡Entre todos venceremos al fascismo!', window.location.origin + '/games/ganar-a-la-injusticia.html')">📤 COMPARTIR</button>
+                    <button class="btn alt" onclick="shareGame('Voto Power', 'Esquiva, reúne aliados y vota. ¡Entre todos venceremos!', 'https://imgTra.github.io/Transformative-Games-Constructive-Disruption/games/ganar-a-la-injusticia.html')">📤 COMPARTIR</button>
                 </div>
                 <p style="font-size:12px; color:#aaa; margin-top:10px;">📍 Temas: Barrio asaltado, Vivienda, Sanidad pública, Educación</p>
             </div>
@@ -313,7 +337,7 @@
                 </div>
                 <div class="btn-group">
                     <button class="btn" onclick="window.location.href='games/el-desahucio.html'">▶ JUGAR</button>
-                    <button class="btn alt" onclick="shareGame('El Desahucio', 'Organiza a los vecinos y resiste el desahucio. ¡Nadie debe quedar solo!', window.location.origin + '/games/el-desahucio.html')">📤 COMPARTIR</button>
+                    <button class="btn alt" onclick="shareGame('El Desahucio', 'Organiza a los vecinos y resiste el desahucio. ¡Nadie debe quedar solo!', 'https://imgTra.github.io/Transformative-Games-Constructive-Disruption/games/el-desahucio.html')">📤 COMPARTIR</button>
                 </div>
                 <p style="font-size:12px; color:#aaa; margin-top:10px;">📍 Temas: Derecho a la vivienda, Organización vecinal, Resistencia colectiva</p>
             </div>
@@ -333,7 +357,7 @@
                 </div>
                 <div class="btn-group">
                     <button class="btn" onclick="window.location.href='games/nadie-se-queda-atras.html'">▶ JUGAR</button>
-                    <button class="btn alt" onclick="shareGame('Nadie se queda atrás', 'Cuatro vecinos, una urna. ¡Entre todos se llega! ¡Nadie se queda atrás!', window.location.origin + '/games/nadie-se-queda-atras.html')">📤 COMPARTIR</button>
+                    <button class="btn alt" onclick="shareGame('Nadie se queda atrás', 'Cuatro vecinos, una urna. ¡Entre todos se llega!', 'https://imgTra.github.io/Transformative-Games-Constructive-Disruption/games/nadie-se-queda-atras.html')">📤 COMPARTIR</button>
                 </div>
                 <p style="font-size:12px; color:#aaa; margin-top:10px;">📍 Temas: Solidaridad, Inclusión, Diversidad, Cooperación</p>
             </div>
@@ -376,6 +400,10 @@
                 <a href="https://github.com/imgTra/Transformative-Games-Constructive-Disruption" 
                    style="color: #ffd23f; text-decoration: underline;" target="_blank">GitHub</a>.
                 <br><br>
+                <strong>Enlace de Juego:</strong> 
+                <a href="https://imgTra.github.io/Transformative-Games-Constructive-Disruption/" 
+                   style="color: #ffd23f; text-decoration: underline;" target="_blank">https://imgTra.github.io/Transformative-Games-Constructive-Disruption/</a>
+                <br><br>
                 <strong>Licencia:</strong> Código abierto para uso educativo y transformación social.<br>
                 <strong>Contribuciones:</strong> ¡Bienvenidas! Ayuda a mejorar estos juegos.
             </p>
@@ -410,10 +438,10 @@
         }
         
         function shareToNetwork(network) {
-            const url = window.location.href;
+            const baseUrl = 'https://imgTra.github.io/Transformative-Games-Constructive-Disruption/';
             const text = '🎮 Transformative Games: Juegos de transformación social. Esquiva la injusticia, organiza a los vecinos, y juntos llegamos a la urna. #JuegosTransformativos #DisrupciónConstructiva';
             const encodedText = encodeURIComponent(text);
-            const encodedUrl = encodeURIComponent(url);
+            const encodedUrl = encodeURIComponent(baseUrl);
             
             let shareUrl;
             switch(network) {
@@ -427,7 +455,7 @@
                     shareUrl = `https://wa.me/?text=${encodedText}`;
                     break;
                 case 'copy':
-                    copyToClipboard(`${text}\n\n${url}`);
+                    copyToClipboard(`${text}\n\n${baseUrl}`);
                     alert('✅ Enlace copiado al portapapeles');
                     return;
             }

@@ -20,7 +20,7 @@ Estos juegos están dirigidos a:
 
 ---
 
-## 🎯 Los Tres Juegos
+## 🎯 Los Cuatro Juegos
 
 ### 1. 🗳️ **Voto Power** (Ganar a la Injusticia)
 
@@ -145,6 +145,46 @@ Cuatro vecinos con habilidades diferentes deben trabajar juntos para llegar a la
 - 🗳️ Todos participamos en democracia
 
 **[▶ JUGAR AHORA](https://imgTra.github.io/Transformative-Games-Constructive-Disruption/games/nadie-se-queda-atras.html)**
+
+---
+
+### 4. 💰 **Devuelve el Dinero**
+
+**Tipo:** Arcade de Acción (estilo retro) • **Sectores:** 4 • **Jugadores:** 1 • **Duración:** 15-20 min
+
+#### Descripción
+Un juego arcade de acción contra la corrupción política. Recorre cuatro sectores de lo público —Educación, Sanidad, Vivienda y Energía— enfrentándote a políticos corruptos que han robado el dinero de todos. Golpéalos, mándalos a la cárcel y recupera los fondos públicos para el pueblo.
+
+#### Mecánicas de Juego
+- **Movimiento y salto doble:** Desplázate y salta dos veces para alcanzar plataformas
+- **Golpe al caer encima:** Salta sobre los corruptos para quitarles el abrigo de billetes (3 golpes los manda a la cárcel)
+- **Grito ciudadano:** Lanza palabras de protesta (ESPACIO/X) contra los enemigos a distancia
+- **Jefes finales por sector:** Don Recorte, Dr. Privatiza, El Casero Mayor y Mr. Puerta Giratoria, cada uno con ataques propios
+- **Cárcel ciudadana:** Los corruptos barridos (tras 3 golpes) salen volando y acaban entre rejas
+- **Contador de dinero recuperado:** Cada edificio público reconstruido devuelve millones de euros al pueblo
+
+#### Los Cuatro Sectores
+1. **🏫 Educación** — Jefe: Don Recorte
+2. **🏥 Sanidad** — Jefe: Dr. Privatiza
+3. **🏠 Vivienda** — Jefe: El Casero Mayor
+4. **⚡ Energía** — Jefe: Mr. Puerta Giratoria
+
+#### Controles
+```
+Flechas / cruceta táctil: Mover
+Arriba o Z: Saltar (doble salto)
+Caer encima del enemigo: Golpear
+Espacio o X: Gritar
+```
+
+#### Temas Abordados
+- 💰 Corrupción política y malversación de fondos públicos
+- 🏫 Defensa de la educación pública
+- 🏥 Defensa de la sanidad pública
+- 🏠 Derecho a una vivienda digna frente a la especulación
+- ⚡ Energía como derecho, no como negocio
+
+**[▶ JUGAR AHORA](https://imgTra.github.io/Transformative-Games-Constructive-Disruption/games/devuelve-el-dinero.html)**
 
 ---
 

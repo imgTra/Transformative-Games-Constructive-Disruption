@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Desahucio</title>
+<style>
+:root{--bg:#1d1b24;--fg:#e8e2d4;--panel:#2e2b38;--line:#7a7488;--ac:#b5543f;--ac2:#5b7f8f}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:"Courier New",Courier,monospace;font-weight:700;-webkit-tap-highlight-color:transparent}
+canvas,.pix{image-rendering:pixelated;image-rendering:crisp-edges}
+.px{background:var(--panel);border:3px solid var(--line);box-shadow:0 0 0 3px var(--bg),0 0 0 6px var(--line);padding:10px;margin:8px 6px}
+.btn{font:inherit;background:var(--ac);color:var(--onac,#fff);border:3px solid #000;padding:8px 12px;cursor:pointer;box-shadow:3px 3px 0 #000;text-transform:uppercase;letter-spacing:.5px;margin:3px}
+.btn:active{transform:translate(3px,3px);box-shadow:none}
+.btn.alt{background:var(--ac2)}.btn.dim{background:#555;color:#ddd}.btn.sel{outline:3px solid #fff;outline-offset:1px}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+h1,h2,h3{margin:.3em 0;text-transform:uppercase;letter-spacing:1px}
+h1{font-size:clamp(22px,5vw,34px)}h2{font-size:clamp(16px,3.5vw,22px)}
+p{margin:.5em 0;line-height:1.35}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:0}
+.bar{height:12px;background:#0007;border:2px solid #000;position:relative}.bar>i{display:block;height:100%;background:var(--ac);transition:width .3s}
+.hide{display:none!important}
+.tag{display:inline-block;border:2px solid #000;padding:0 5px;font-size:12px;background:var(--ac2);color:#fff;margin:1px}
+.wrap{max-width:920px;margin:0 auto;padding:10px}
+.small{font-size:12px;opacity:.85}
+.center{text-align:center}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:50;padding:14px}
+.ov>.px{max-width:560px;width:100%;max-height:92vh;overflow:auto}
+canvas.fit{width:100%;height:auto;display:block}
+.good{color:#6fe08a}.bad{color:#ff7a7a}.warn{color:#ffd86b}
+a{color:var(--ac2)}
+@media(max-width:600px){.btn{padding:10px 9px;font-size:13px}.px{padding:8px}}
+
+.stat{display:grid;grid-template-columns:78px 1fr 34px;gap:6px;align-items:center;font-size:12px;margin:3px 0}
+.stat .bar>i{background:var(--c)}
+#log{max-height:150px;overflow:auto;font-size:13px}
+#log p{margin:3px 0;border-left:3px solid var(--line);padding-left:6px}
+.opt{display:block;width:100%;text-align:left;text-transform:none;margin:5px 0}
+.opt small{display:block;opacity:.8;font-weight:400;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="sc" class="fit" width="320" height="120" style="border:3px solid var(--line)"></canvas>
+  <div class="px" id="stats"></div>
+  <div class="px" id="main"></div>
+  <div class="px"><div class="small">DIARIO</div><div id="log"></div></div>
+  <div class="small center">Juego de ficción. Si te enfrentas a un desahucio real, busca ayuda legal y asociaciones de vivienda de tu zona.</div>
+</div>
+<script>
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+function h(tag,at,...kids){const e=document.createElement(tag);if(at)for(const k in at){const v=at[k];if(k==='class')e.className=v;else if(k.slice(0,2)==='on')e.addEventListener(k.slice(2),v);else if(k==='html')e.innerHTML=v;else if(v!==false&&v!=null)e.setAttribute(k,v);}for(const c of kids.flat(9))if(c!=null&&c!==false)e.append(c.nodeType?c:document.createTextNode(c));return e;}
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+let AC=null,MUTE=false;
+function beep(f,d=.08,t='square',v=.04,f2){if(MUTE)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;if(f2)o.frequency.exponentialRampToValueAtTime(f2,AC.currentTime+d);g.gain.value=v;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.stop(AC.currentTime+d);}catch(e){}}
+function noise(d=.08,v=.05,hp=800){if(MUTE)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const n=Math.floor(AC.sampleRate*d),b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=AC.createBufferSource();s.buffer=b;const f=AC.createBiquadFilter();f.type='highpass';f.frequency.value=hp;const g=AC.createGain();g.gain.value=v;s.connect(f);f.connect(g);g.connect(AC.destination);s.start();}catch(e){}}
+function spr(rows,pal,sc){const w=Math.max(...rows.map(r=>r.length)),hh=rows.length,c=document.createElement('canvas');c.width=w;c.height=hh;const x=c.getContext('2d');rows.forEach((r,j)=>[...r].forEach((ch,i)=>{if(pal[ch]){x.fillStyle=pal[ch];x.fillRect(i,j,1,1);}}));c.style.width=w*sc+'px';c.style.height=hh*sc+'px';c.className='pix';return c;}
+function drawSpr(ctx,rows,pal,x,y,sc=1,flip){rows.forEach((r,j)=>[...r].forEach((ch,i)=>{if(pal[ch]){ctx.fillStyle=pal[ch];const ii=flip?r.length-1-i:i;ctx.fillRect(x+ii*sc,y+j*sc,sc,sc);}}));}
+function store(k,v){try{if(v===undefined){const s=localStorage.getItem(k);return s?JSON.parse(s):null;}localStorage.setItem(k,JSON.stringify(v));}catch(e){return null;}}
+const _tc=document.createElement('canvas'),_tx=_tc.getContext('2d',{willReadFrequently:true}),_pc={};
+function ptext(c,txt,x,y,px,col,al){const key=txt+'|'+px+'|'+col;let m=_pc[key];if(!m){_tx.font='bold '+px+'px "Courier New",Courier,monospace';const w=Math.ceil(_tx.measureText(txt).width)+2,hh=px+4;_tc.width=w;_tc.height=hh;_tx.font='bold '+px+'px "Courier New",Courier,monospace';_tx.textBaseline='top';_tx.fillStyle='#000';_tx.fillText(txt,1,1);const d=_tx.getImageData(0,0,w,hh).data,o=document.createElement('canvas');o.width=w;o.height=hh;const ox=o.getContext('2d'),im=ox.createImageData(w,hh);const cc=document.createElement('canvas').getContext('2d');cc.fillStyle=col;cc.fillRect(0,0,1,1);const rgb=cc.getImageData(0,0,1,1).data;for(let i=0;i<w*hh;i++){if(d[i*4+3]>110){im.data[i*4]=rgb[0];im.data[i*4+1]=rgb[1];im.data[i*4+2]=rgb[2];im.data[i*4+3]=255;}}ox.putImageData(im,0,0);m=_pc[key]=o;}c.drawImage(m,Math.round(x-(al==='c'?m.width/2:al==='r'?m.width:0)),Math.round(y));return m.width;}
+function toast(msg,ms=1800){const t=h('div',{class:'px',style:'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:99;max-width:90vw;background:#111;color:#fff'},msg);document.body.append(t);setTimeout(()=>t.remove(),ms);}
+function modal(content,onclose){const o=h('div',{class:'ov'},h('div',{class:'px'},content));document.body.append(o);o.close=()=>{o.remove();onclose&&onclose();};return o;}
+
+const DAYS=30;
+const ST=[['moral','ÁNIMO','#c9a227'],['vec','VECINOS','#5b9f7f'],['legal','LEGAL','#6a8fd0'],['prensa','PRENSA','#c0709a']];
+let S;
+function newGame(){S={day:1,ap:2,moral:60,vec:12,caja:180,legal:4,prensa:4,f:{},q:[],log:[],used:{},over:false,phase:'ev'};
+  $('#log').innerHTML='';beginDay();}
+function say(t,cls){S.log.unshift(t);const p=h('p',{class:cls||''},t);$('#log').prepend(p);}
+function fx(o){const out=[];for(const k in o){if(k==='caja'){S.caja+=o[k];out.push('CAJA '+(o[k]>0?'+':'')+o[k]+'€');}else{const n=clamp(S[k]+o[k],0,100);const d=n-S[k];S[k]=n;if(d)out.push((ST.find(x=>x[0]===k)||[0,k.toUpperCase()])[1]+' '+(d>0?'+':'')+d);}}return out.join(' · ');}
+function later(n,k){S.q.push({d:S.day+n,k});}
+const LATER={
+ abogada:()=>{S.f.abogada=1;return 'La abogada del turno de oficio te recibe. Ya hay quien lleve tu caso. '+fx({legal:10,moral:5});},
+ recurso:()=>{S.f.recurso=1;return 'El juzgado admite a trámite tu recurso. '+fx({legal:14,moral:4});},
+ informe:()=>{S.f.informe=1;return 'Servicios sociales emite el informe de vulnerabilidad. '+fx({legal:12});},
+ prensa:()=>fx({prensa:8,vec:3})+' Sale tu historia en el periódico local.',
+ banco:()=>{S.f.bancoHabla=1;return 'El banco accede a una reunión.';}
+};
+const FIXED={
+ 3:{t:'CARTA CERTIFICADA',x:'Llega la notificación: lanzamiento fijado para el día 30. Las manos te tiemblan. Tienes un mes.',o:[
+   {l:'Respirar y hacer una lista de qué hacer',r:()=>fx({moral:3})},
+   {l:'Esconder la carta y no decir nada',s:'Es lo que hace mucha gente.',r:()=>fx({moral:-8,vec:-2})}]},
+ 8:{t:'LA VECINA DEL 2ºB',x:'Doña Pilar te cuenta que a ella le pasó hace diez años. "Sola no se puede", dice. "En la escalera somos once familias".',o:[
+   {l:'Preguntarle cómo se organizaron',r:()=>{S.f.pilar=1;return fx({vec:6,moral:4})+' Te da contactos y mucha rabia buena.';}},
+   {l:'Darle las gracias y seguir a lo tuyo',r:()=>fx({moral:1})}]},
+ 12:{t:'OFERTA DEL FONDO',x:'Un hombre trajeado te ofrece 3.000 € si firmas que dejas la casa sin más líos. "Es lo mejor que vas a conseguir".',o:[
+   {l:'Aceptar y marcharte',s:'Termina la partida.',r:()=>{end('dinero');return '';}},
+   {l:'Rechazar, y contarlo en la escalera',r:()=>fx({vec:5,moral:6,prensa:2})+' Se enteran todos: "intentan comprarnos el silencio".'}]},
+ 18:{t:'NOTIFICACIÓN DEL JUZGADO',x:'Confirman la fecha. Ya no hay marcha atrás, salvo que pase algo gordo antes. Hay quien dice que no hay nada que hacer.',o:[
+   {l:'Convocar asamblea urgente',r:()=>{S.f.asamblea=1;return fx({vec:8,moral:3});}},
+   {l:'Dejar que se enfríe',r:()=>fx({vec:-4,moral:-4})}]},
+ 24:{t:'VISITA DE LA POLICÍA',x:'Dos agentes preguntan si piensas "hacer alguna tontería". Quieren saber quién se junta en tu portal.',o:[
+   {l:'Responder con calma: es una reunión de vecinas',r:()=>fx({legal:4,vec:3})},
+   {l:'No abrir la puerta',r:()=>fx({moral:-3})},
+   {l:'Enfadarte y discutir',r:()=>fx({moral:-5,legal:-3})}]},
+ 29:{t:'LA VÍSPERA',x:'Mañana es el día. Desde la ventana ves el portal: ¿quién va a venir?',o:[{l:'Esperar a ver',r:()=>fx({moral:2})}]}
+};
+const RAND=[
+ {t:'CORTAN LA LUZ',x:'Te dejan sin luz por impago.',o:[
+  {l:'Pagar el enganche (80 €)',c:()=>S.caja>=80,r:()=>fx({caja:-80,moral:2})},
+  {l:'Pedir ayuda en la escalera',r:()=>S.vec>=20?fx({moral:5,vec:3})+' Una vecina te pasa un alargador.':fx({moral:-6})+' Nadie contesta.'},
+  {l:'Aguantar a oscuras',r:()=>fx({moral:-8})}]},
+ {t:'UN PERIODISTA LLAMA',x:'Una periodista local quiere hablar contigo.',o:[
+  {l:'Contarle tu caso con calma',r:()=>S.vec>=20?fx({prensa:9,vec:3}):fx({prensa:4})},
+  {l:'Rechazar, te da vergüenza',r:()=>fx({moral:-2})}]},
+ {t:'RUMOR EN EL BARRIO',x:'Corre la voz de que "esto ya está perdido".',o:[
+  {l:'Desmentirlo en la asamblea',c:()=>!!S.f.asamblea,r:()=>fx({vec:5,moral:3})},
+  {l:'Desmentirlo puerta a puerta',r:()=>fx({vec:2,moral:-2})},
+  {l:'Ignorarlo',r:()=>fx({vec:-5})}]},
+ {t:'UNA VECINA TRAE COMIDA',x:'Llaman a tu puerta con un táper de lentejas.',o:[{l:'Aceptar y quedaros charlando',r:()=>fx({moral:9,vec:3})}]},
+ {t:'OBRAS A TODAS HORAS',x:'Empiezan a taladrar en el piso de arriba, vacío. Parece pensado para agotarte.',o:[
+  {l:'Documentar con fotos y vídeos',r:()=>fx({legal:5,moral:-2})},
+  {l:'Salir al descansillo y hablar con las vecinas',r:()=>fx({vec:4,moral:-1})},
+  {l:'Aguantar',r:()=>fx({moral:-7})}]},
+ {t:'SE TE OLVIDÓ UN PLAZO',x:'Con tantas cartas, se te pasó un trámite.',o:[{l:'Maldecir y rehacerlo',r:()=>fx({legal:-5,moral:-3})}]},
+ {t:'UN DESCONOCIDO APOYA',x:'Alguien comparte tu historia en redes. Mensajes de ánimo.',c:()=>S.prensa>=20,o:[{l:'Leerlos con una sonrisa',r:()=>fx({moral:8,prensa:3})}]},
+ {t:'LA PROPIEDAD "AMABLE"',x:'El administrador te propone "hablarlo con calma" sin que vayan las vecinas.',o:[
+  {l:'Decir que solo hablas con las vecinas delante',r:()=>fx({vec:4,legal:2})},
+  {l:'Ir tú solo',r:()=>fx({moral:-5,vec:-2})}]},
+ {t:'UN VECINO OFRECE SU SOFÁ',x:'"Si te quedas sin casa, aquí tienes un sitio". Te emociona, pero suena a "ya está perdido".',o:[
+  {l:'Aceptar la ayuda y seguir luchando',r:()=>fx({moral:7,vec:2})}]}
+];
+const ACT=[
+ {id:'hablar',l:'Hablar con el vecindario',s:'Puerta a puerta. Ganas aliados.',ok:()=>1,go:()=>{const v=Math.max(2,6+Math.floor(Math.random()*5)+(S.f.pilar?3:0)-Math.floor(S.vec/14));return 'Llamas a las puertas. '+fx({vec:v,moral:2});}},
+ {id:'asamblea',l:'Convocar asamblea de escalera',s:'Requiere 15+ vecinos de apoyo.',ok:()=>S.vec>=15&&!S.f.asamblea,go:()=>{S.f.asamblea=1;return 'Primera asamblea en el portal. Se acuerdan turnos y un grupo de mensajes. '+fx({vec:10,moral:6});}},
+ {id:'caja',l:'Montar una caja de resistencia',s:'Necesita asamblea. Genera ingresos cada noche.',ok:()=>S.f.asamblea&&!S.f.caja,go:()=>{S.f.caja=1;return 'Todo el mundo pone lo que puede. '+fx({caja:120,vec:3,moral:3});}},
+ {id:'abogado',l:'Buscar abogada de oficio',s:'Gratis, pero tarda 3 días.',ok:()=>!S.f.abogada&&!S.f.buscando,go:()=>{S.f.buscando=1;later(3,'abogada');return 'Pides cita en el turno de oficio. '+fx({legal:4});}},
+ {id:'privado',l:'Pagar un abogado privado (150 €)',s:'Más rápido.',ok:()=>!S.f.abogada&&S.caja>=150,go:()=>{S.f.abogada=1;return 'Contratas a un abogado especializado. '+fx({caja:-150,legal:14});}},
+ {id:'recurso',l:'Presentar recurso',s:'Requiere abogada. Surte efecto en 4 días.',ok:()=>S.f.abogada&&!S.f.recurso&&!S.f.rec2,go:()=>{S.f.rec2=1;later(4,'recurso');return 'Se presenta el recurso contra el lanzamiento. '+fx({legal:5});}},
+ {id:'sociales',l:'Ir a servicios sociales',s:'Informe de vulnerabilidad en 5 días.',ok:()=>!S.f.informe&&!S.f.soc,go:()=>{S.f.soc=1;later(5,'informe');return 'Esperas dos horas y consigues cita. '+fx({legal:3,moral:-2});}},
+ {id:'prensa',l:'Contactar con la prensa local',s:'Mejor con más apoyo detrás.',ok:()=>S.prensa<90,go:()=>{if(S.vec>=25){later(2,'prensa');return 'Mandas un comunicado con firmas de los vecinos. '+fx({prensa:6});}return 'Mandas un correo. Responden con educación y nada más. '+fx({prensa:3,moral:-2});}},
+ {id:'banco',l:'Pedir reunión con el banco',s:'Necesita Legal 35+. Puede ofrecer alquiler social.',ok:()=>S.legal>=35&&!S.f.bancoOk,go:()=>{const p=(S.legal+S.vec*.5+S.prensa*.5)/150;if(Math.random()<p+.2){S.f.bancoOk=1;return 'Aceptan estudiar un alquiler social. '+fx({legal:12,moral:8});}return 'Dan largas. '+fx({moral:-5});}},
+ {id:'chapuza',l:'Hacer chapuzas por ahí',s:'+60 €, pero agota.',ok:()=>1,go:()=>'Un día de albañilería en negro. '+fx({caja:60,moral:-6})},
+ {id:'descansar',l:'Descansar y cuidarte',s:'Recupera ánimo.',ok:()=>1,go:()=>'Té, una ducha y una siesta de verdad. '+fx({moral:14})},
+ {id:'acompanar',l:'Acompañar a otra familia',s:'La solidaridad se contagia.',ok:()=>S.day>=6,go:()=>'Vas con una vecina a su cita en el juzgado. '+fx({vec:5,prensa:2,moral:4})}
+];
+function stats(){const el=$('#stats');el.innerHTML='';el.append(h('div',{class:'row'},h('b',{},'DÍA '+S.day+'/'+DAYS),h('span',{class:'tag'},'ACCIONES: '+'●'.repeat(S.ap)+'○'.repeat(2-S.ap)),h('span',{class:'tag'},'CAJA: '+S.caja+' €'),h('span',{class:'tag'},'LANZAMIENTO EN '+(DAYS-S.day)+' DÍAS')));
+ for(const[k,n,c] of ST)el.append(h('div',{class:'stat',style:'--c:'+c},n,h('div',{class:'bar'},h('i',{style:'width:'+S[k]+'%'})),String(S[k])));scene();}
+function beginDay(){
+  // efectos retrasados
+  const due=S.q.filter(x=>x.d<=S.day);S.q=S.q.filter(x=>x.d>S.day);
+  due.forEach(x=>say('📬 '+LATER[x.k](),'good'));
+  stats();
+  let ev=FIXED[S.day];
+  if(!ev&&Math.random()<.55){const pool=RAND.filter(e=>!e.c||e.c());ev=pick(pool);}
+  if(S.over)return;
+  if(ev)showEvent(ev);else{S.phase='act';showActions();}
+}
+function showEvent(ev){S.phase='ev';const m=$('#main');m.innerHTML='';
+  m.append(h('h2',{},ev.t),h('p',{},ev.x));
+  ev.o.forEach(o=>{const ok=!o.c||o.c();m.append(h('button',{class:'btn opt'+(ok?'':' dim'),disabled:!ok,onclick:()=>{const r=o.r();if(S.over)return;if(r)say(r);S.phase='act';stats();checkEnd();if(!S.over)showActions();}},o.l,o.s?h('small',{},o.s):null));});}
+function showActions(){const m=$('#main');m.innerHTML='';
+  m.append(h('h2',{},'¿QUÉ HACES HOY?'),h('p',{class:'small'},'Tienes '+S.ap+' acciones. Lo que hagas hoy puede tardar días en dar fruto.'));
+  if(S.ap>0)ACT.filter(a=>a.ok()).forEach(a=>m.append(h('button',{class:'btn opt alt',onclick:()=>{S.ap--;say(a.go());beep(520,.06);stats();checkEnd();if(!S.over)showActions();}},a.l,h('small',{},a.s))));
+  m.append(h('button',{class:'btn',onclick:endDay},S.ap>0?'Terminar el día':'Pasar a la noche →'));}
+function endDay(){
+  let msg='';
+  if(S.f.caja){const g=Math.floor(S.vec*.7);S.caja+=g;msg+='La caja recoge '+g+' €. ';}
+  const wear=1+Math.floor(S.day/12);S.moral=clamp(S.moral-wear,0,100);
+  if(S.f.asamblea&&S.vec>30){S.moral=clamp(S.moral+2,0,100);}
+  if(S.caja<0){msg+='Números rojos. '+fx({moral:-5});}
+  if(msg)say('🌙 '+msg);
+  if(checkEnd())return;
+  S.day++;S.ap=2;
+  if(S.day>DAYS){end('final');return;}
+  beginDay();}
+function checkEnd(){if(S.over)return true;if(S.moral<=0){end('hundido');return true;}return false;}
+function end(k){S.over=true;stats();const m=$('#main');m.innerHTML='';let t,x,c;
+  const v=S.vec,L=S.legal,P=S.prensa;
+  if(k==='dinero'){t='TE VAS CON UN SOBRE';x='Firmas. Tienes 3.000 € y la casa se queda vacía. Nadie en la escalera se entera hasta después. Con ese dinero no alcanza para un piso en el barrio, y la próxima familia recibirá la misma carta sin saber que otras se resistieron.';c='warn';}
+  else if(k==='hundido'){t='TE HUNDES';x='El cansancio y el miedo pueden más. Cuando el agotamiento se acumula, hay que pedir ayuda antes: nadie aguanta un desahucio solo. No es una derrota personal.';c='bad';}
+  else if(v>=70||(v>=55&&(L>=45||P>=45))){t='SE PARALIZA EL DESAHUCIO';x='A las 8 de la mañana hay cien personas en el portal. La comitiva judicial se encuentra una puerta cerrada y una calle llena. El juzgado suspende el lanzamiento y el banco acaba sentándose a negociar. Tu casa sigue siendo tu casa, y hay once familias más que ahora saben que se puede.';c='good';}
+  else if(L>=50&&S.f.informe){t='ALQUILER SOCIAL';x='Con el informe de vulnerabilidad y el recurso, el banco acepta un alquiler social. No ganáis del todo, pero os quedáis en casa pagando una cuota asumible.';c='good';}
+  else if(v>=35){t='APLAZAMIENTO';x='El lanzamiento se aplaza dos meses. Tiempo para seguir organizándoos. No es el final, pero ya no estás solo.';c='warn';}
+  else if(v>=20){t='PIERDES LA CASA, NO A TU GENTE';x='El desalojo se ejecuta. Pero las vecinas te ayudan con la mudanza y no te dejan solo ni una noche. Ya hay una asamblea de vivienda en el barrio.';c='warn';}
+  else{t='DESALOJO EN SOLEDAD';x='Te quedas sin casa y sin red. Pocas cosas son más duras. Organizarse antes —hablar con la escalera, buscar asesoría, hacer ruido— cambia mucho el final.';c='bad';}
+  m.append(h('h2',{class:c},t),h('p',{},x),h('p',{class:'small'},'Apoyo vecinal '+v+' · Legal '+L+' · Prensa '+P+' · Ánimo '+S.moral+' · Caja '+S.caja+' €'),h('button',{class:'btn',onclick:newGame},'↺ Volver a empezar'));
+  if(!k.startsWith('x'))store('desahucio_final',{k,t});}
+function scene(){const c=$('#sc'),x=c.getContext('2d');const W=320,H=120,d=S.day/DAYS;
+  const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#4a4a5e');g.addColorStop(1,'#8a7f8d');x.fillStyle=g;x.fillRect(0,0,W,H);
+  x.fillStyle='#34303c';x.fillRect(0,92,W,28);x.fillStyle='#262230';x.fillRect(0,92,W,3);
+  // edificios fondo
+  x.fillStyle='#3d3a4a';[[0,40,40],[255,30,60],[290,50,40]].forEach(([a,b,w])=>x.fillRect(a,b+0,w,92-b));
+  // edificio principal
+  x.fillStyle='#6b5a52';x.fillRect(80,16,120,76);x.fillStyle='#4a3d38';x.fillRect(76,12,128,6);
+  const lit=Math.round(S.vec/100*11);let n=0;
+  for(let r=0;r<3;r++)for(let c2=0;c2<4;c2++){const wx=92+c2*26,wy=26+r*22;const on=n<lit||(r===2&&c2===1&&S.moral>30);x.fillStyle=on?'#f0d27a':'#2c2830';if(r===2&&c2===1)x.fillStyle=S.moral>30?'#f0a06a':'#2c2830';x.fillRect(wx,wy,14,14);x.fillStyle='#0004';x.fillRect(wx+6,wy,2,14);n++;}
+  x.fillStyle='#2a2028';x.fillRect(132,74,16,18);
+  // pancarta si hay asamblea
+  if(S.f.asamblea){x.fillStyle='#e8e2d4';x.fillRect(84,60,50,10);x.fillStyle='#b5543f';ptext(x,'STOP',88,60,8,'#b5543f');}
+  // vecinos en la calle
+  const nv=Math.floor(S.vec/8);for(let i=0;i<nv;i++){const px=60+i*14+(i%2)*3,py=98+(i%3)*5;x.fillStyle=['#c9a227','#5b9f7f','#c0709a','#6a8fd0'][i%4];x.fillRect(px,py,4,6);x.fillStyle='#e0b898';x.fillRect(px,py-3,4,3);}
+  // comitiva
+  const bx=Math.round(320-d*130+Math.sin(Date.now()/400)*0);for(let i=0;i<2;i++){x.fillStyle='#14121a';x.fillRect(bx+i*7,96,5,9);x.fillStyle='#e0b898';x.fillRect(bx+i*7,93,5,3);}
+  // calendario
+  x.fillStyle='#e8e2d4';x.fillRect(4,4,38,22);x.fillStyle='#b5543f';x.fillRect(4,4,38,6);ptext(x,String(DAYS-S.day),23,10,13,'#1d1b24','c');}
+newGame();setInterval(()=>{if(S&&!S.over)scene();},500);
+</script>
+</body>
+</html>
